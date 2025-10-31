@@ -7,19 +7,18 @@ template <typename R>
 [[noreturn]]
 R rethrow_exception(std::exception_ptr exception) {
   std::rethrow_exception(exception);
-  return R{};
 }
 
 template <typename R>
-struct recieve {
+struct callback {
   template <typename HandleReturn>
   struct basic_promise_type : HandleReturn {
-    recieve<R> get_return_object(this auto& self) {
-      return recieve<R>{std::coroutine_handle<basic_promise_type>::from_promise(self)};
+    callback<R> get_return_object(this auto& self) {
+      return callback<R>{std::coroutine_handle<basic_promise_type>::from_promise(self)};
     }
 
-    struct resume_recieve {
-      resume_recieve() noexcept {}
+    struct await_callback {
+      await_callback() noexcept {}
       bool await_ready() const noexcept { return false; }
       void await_suspend(
           std::coroutine_handle<basic_promise_type> thisCoroutine) noexcept {
@@ -29,7 +28,7 @@ struct recieve {
       void await_resume() noexcept {}
     };
     auto initial_suspend() noexcept { return std::suspend_never{}; }
-    auto final_suspend() noexcept { return resume_recieve{}; }
+    auto final_suspend() noexcept { return await_callback{}; }
     void unhandled_exception() noexcept {
       exception_ = std::current_exception();
     }
@@ -47,15 +46,15 @@ struct recieve {
   };
   using promise_type = basic_promise_type<handle_return<R>>;
 
-  recieve(const recieve&) = delete;
-  recieve& operator=(const recieve&) = delete;
-  recieve& operator=(recieve&& r) noexcept = delete;
+  callback(const callback&) = delete;
+  callback& operator=(const callback&) = delete;
+  callback& operator=(callback&& r) noexcept = delete;
 
-  recieve() noexcept = default;
-  recieve(recieve&& t) noexcept { std::swap(coroutine_, t.coroutine_); }
-  explicit recieve(std::coroutine_handle<promise_type> coroutine)
+  callback() noexcept = default;
+  callback(callback&& t) noexcept { std::swap(coroutine_, t.coroutine_); }
+  explicit callback(std::coroutine_handle<promise_type> coroutine)
       : coroutine_(coroutine) {}
-  ~recieve() noexcept {
+  ~callback() noexcept {
     if (coroutine_) coroutine_.destroy();
   }
 
@@ -78,12 +77,8 @@ struct recieve {
   std::coroutine_handle<promise_type> coroutine_;
 };
 
-//template <typename R>
-//using api_recieve = std::function<void(R)>;
-//template <typename R>
-//using api = std::function<void(api_recieve<R>)>;
 template <typename R, typename Api>
-struct recieve_awaiter {
+struct callback_awaiter {
   bool await_ready() { return false; }
   void await_suspend(auto callingContinuation) {
     bool called = false;
@@ -99,7 +94,7 @@ struct recieve_awaiter {
   R result_ = {};
 };
 template <typename Api>
-struct recieve_awaiter<void, Api> {
+struct callback_awaiter<void, Api> {
   bool await_ready() { return false; }
   void await_suspend(auto callingContinuation) {
     bool called = false;
@@ -114,7 +109,7 @@ struct recieve_awaiter<void, Api> {
 };
 template <typename R, typename Api>
 auto wrap(Api&& api) {
-  return recieve_awaiter<R, std::decay_t<Api>>{std::move(api)};
+  return callback_awaiter<R, std::decay_t<Api>>{std::move(api)};
 }
 
 }  // namespace coro_callback
