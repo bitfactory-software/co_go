@@ -57,8 +57,8 @@ add_library(myproject::myproject_warnings ALIAS myproject_warnings)
 # configure files based on CMake configuration options
 add_subdirectory(configured_files)
 
-# Adding the src:
-add_subdirectory(src)
+# Adding the co_go:
+add_subdirectory(co_go)
 
 # Don't even look at tests if we're not top level
 if(NOT PROJECT_IS_TOP_LEVEL)
