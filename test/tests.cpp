@@ -39,7 +39,7 @@ auto void_recieve_coro() { return co_go::wrap<void>(void_callback_api); };
 
 }// namespace
 
-TEST_CASE("int [callback]")
+TEST_CASE("int [continuation]")
 {
   // + call callback style
   step = 1;
@@ -54,7 +54,7 @@ TEST_CASE("int [callback]")
 
   step = 1;
   CHECK(step == 1);
-  [&] -> co_go::callback<void> {
+  [&] -> co_go::continuation<void> {
     // call coro style must exist inside a coro
     auto _42 = co_await int_recieve_coro();
     std::println("recieving 42");
@@ -64,7 +64,7 @@ TEST_CASE("int [callback]")
   CHECK(step == 4);
 }
 
-TEST_CASE("void [callback]")
+TEST_CASE("void [continuation]")
 {
   // + app callback style
   step = 1;
@@ -77,7 +77,7 @@ TEST_CASE("void [callback]")
   // - app callback style
 
   step = 1;
-  [&] -> co_go::callback<void> {
+  [&] -> co_go::continuation<void> {
     // + app coro style must exist inside a coro
     co_await void_recieve_coro();
     std::println("recieving void");

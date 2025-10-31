@@ -10,25 +10,25 @@ R rethrow_exception(std::exception_ptr exception) {
 }
 
 template <typename R>
-struct callback {
+struct continuation {
   template <typename HandleReturn>
   struct basic_promise_type : HandleReturn {
-    callback<R> get_return_object(this auto& self) {
-      return callback<R>{std::coroutine_handle<basic_promise_type>::from_promise(self)};
+    continuation<R> get_return_object(this auto& self) {
+      return continuation<R>{std::coroutine_handle<basic_promise_type>::from_promise(self)};
     }
 
-    struct await_callback {
-      await_callback() noexcept {}
+    struct await_continuation {
+      await_continuation() noexcept {}
       bool await_ready() const noexcept { return false; }
       void await_suspend(
-          std::coroutine_handle<basic_promise_type> thisCoroutine) noexcept {
-        auto& promise = thisCoroutine.promise();
+          std::coroutine_handle<basic_promise_type> this_continuation) noexcept {
+        auto& promise = this_continuation.promise();
         if (promise.callingCoroutine_) promise.callingCoroutine_.resume();
       }
       void await_resume() noexcept {}
     };
     auto initial_suspend() noexcept { return std::suspend_never{}; }
-    auto final_suspend() noexcept { return await_callback{}; }
+    auto final_suspend() noexcept { return await_continuation{}; }
     void unhandled_exception() noexcept {
       exception_ = std::current_exception();
     }
@@ -46,15 +46,15 @@ struct callback {
   };
   using promise_type = basic_promise_type<handle_return<R>>;
 
-  callback(const callback&) = delete;
-  callback& operator=(const callback&) = delete;
-  callback& operator=(callback&& r) noexcept = delete;
+  continuation(const continuation&) = delete;
+  continuation& operator=(const continuation&) = delete;
+  continuation& operator=(continuation&& r) noexcept = delete;
 
-  callback() noexcept = default;
-  callback(callback&& t) noexcept { std::swap(coroutine_, t.coroutine_); }
-  explicit callback(std::coroutine_handle<promise_type> coroutine)
+  continuation() noexcept = default;
+  continuation(continuation&& t) noexcept { std::swap(coroutine_, t.coroutine_); }
+  explicit continuation(std::coroutine_handle<promise_type> coroutine)
       : coroutine_(coroutine) {}
-  ~callback() noexcept {
+  ~continuation() noexcept {
     if (coroutine_) coroutine_.destroy();
   }
 
@@ -78,15 +78,15 @@ struct callback {
 };
 
 template <typename R, typename Api>
-struct callback_awaiter {
+struct continuation_awaiter {
   bool await_ready() { return false; }
-  void await_suspend(auto callingContinuation) {
+  void await_suspend(auto calling_continuation) {
     bool called = false;
-    api_([this, callingContinuation, called](const R& r) mutable {
+    api_([this, calling_continuation, called](const R& r) mutable {
       if (called) return;
       called = true;
       result_ = r;
-      callingContinuation.resume();
+      calling_continuation.resume();
     });
   }
   R await_resume() { return result_; }
@@ -94,14 +94,14 @@ struct callback_awaiter {
   R result_ = {};
 };
 template <typename Api>
-struct callback_awaiter<void, Api> {
+struct continuation_awaiter<void, Api> {
   bool await_ready() { return false; }
-  void await_suspend(auto callingContinuation) {
+  void await_suspend(auto calling_continuation) {
     bool called = false;
-    api_([this, callingContinuation, called]() mutable {
+    api_([this, calling_continuation, called]() mutable {
       if (called) return;
       called = true;
-      callingContinuation.resume();
+      calling_continuation.resume();
     });
   }
   void await_resume() {}
@@ -109,7 +109,7 @@ struct callback_awaiter<void, Api> {
 };
 template <typename R, typename Api>
 auto wrap(Api&& api) {
-  return callback_awaiter<R, std::decay_t<Api>>{std::move(api)};
+  return continuation_awaiter<R, std::decay_t<Api>>{std::move(api)};
 }
 
-}  // namespace coro_callback
+}  // namespace coro_continuation
