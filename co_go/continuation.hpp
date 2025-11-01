@@ -14,14 +14,15 @@ struct continuation {
   template <typename HandleReturn>
   struct basic_promise_type : HandleReturn {
     continuation<R> get_return_object(this auto& self) {
-      return continuation<R>{std::coroutine_handle<basic_promise_type>::from_promise(self)};
+      return continuation<R>{
+          std::coroutine_handle<basic_promise_type>::from_promise(self)};
     }
 
     struct await_continuation {
       await_continuation() noexcept {}
       bool await_ready() const noexcept { return false; }
-      void await_suspend(
-          std::coroutine_handle<basic_promise_type> this_continuation) noexcept {
+      void await_suspend(std::coroutine_handle<basic_promise_type>
+                             this_continuation) noexcept {
         auto& promise = this_continuation.promise();
         if (promise.callingCoroutine_) promise.callingCoroutine_.resume();
       }
@@ -51,7 +52,9 @@ struct continuation {
   continuation& operator=(continuation&& r) noexcept = delete;
 
   continuation() noexcept = default;
-  continuation(continuation&& t) noexcept { std::swap(coroutine_, t.coroutine_); }
+  continuation(continuation&& t) noexcept {
+    std::swap(coroutine_, t.coroutine_);
+  }
   explicit continuation(std::coroutine_handle<promise_type> coroutine)
       : coroutine_(coroutine) {}
   ~continuation() noexcept {
@@ -112,4 +115,4 @@ auto wrap(Api&& api) {
   return continuation_awaiter<R, std::decay_t<Api>>{std::move(api)};
 }
 
-}  // namespace coro_continuation
+}  // namespace co_go

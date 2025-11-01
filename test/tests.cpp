@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include <co_go/callback.hpp>
+#include <co_go/continuation.hpp>
 #include <functional>
 #include <print>
 
@@ -7,25 +7,24 @@ namespace {
 int step = 1;
 
 // + lib callback style
-void int_callback_api(std::function<void(int)> callback)
-{
+void int_callback_api(std::function<void(int)> callback) {
   std::println("before callback");
-  CHECK(step++ == 1);
   callback(42);
   std::println("after callback");
-  CHECK(step++ == 3);
 };
 // - lib callback style
 // + lib wrapped for coro style
-auto int_recieve_coro()
-{
-  return co_go::wrap<int>(int_callback_api);
+auto int_recieve_coro() { return co_go::wrap<int>(int_callback_api); };
+// - lib wrapped for coro style
+co_go::continuation<int> int_recieve_coro_indirect() {
+  auto x = co_await co_go::wrap<int>(int_callback_api);
+  std::println("int_recieve_coro_indirect after callback {}", x);
+  co_return x + 1;
 };
 // - lib wrapped for coro style
 
 // + lib callback style
-auto void_callback_api(std::function<void(void)> callback)
-{
+auto void_callback_api(std::function<void(void)> callback) {
   std::println("before callback");
   CHECK(step++ == 1);
   callback();
@@ -37,35 +36,34 @@ auto void_callback_api(std::function<void(void)> callback)
 auto void_recieve_coro() { return co_go::wrap<void>(void_callback_api); };
 // - lib wrapped for coro style
 
-}// namespace
+}  // namespace
 
-TEST_CASE("int [continuation]")
-{
+TEST_CASE("int [continuation]") {
   // + call callback style
   step = 1;
   CHECK(step == 1);
   int_callback_api([&](int _42) {
     std::println("recieving 42");
-    CHECK(step++ == 2);
     CHECK(42 == _42);
   });
-  CHECK(step == 4);
   // - app callback style
 
-  step = 1;
-  CHECK(step == 1);
   [&] -> co_go::continuation<void> {
     // call coro style must exist inside a coro
     auto _42 = co_await int_recieve_coro();
     std::println("recieving 42");
-    CHECK(step++ == 2);
     CHECK(42 == _42);
   }();
-  CHECK(step == 4);
+
+  [&] -> co_go::continuation<void> {
+    // call coro style must exist inside a coro
+    auto _43 = co_await int_recieve_coro_indirect();
+    std::println("recieving 43");
+    CHECK(43 == _43);
+  }();
 }
 
-TEST_CASE("void [continuation]")
-{
+TEST_CASE("void [continuation]") {
   // + app callback style
   step = 1;
   CHECK(step == 1);

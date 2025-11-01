@@ -1,6 +1,6 @@
 include(GenerateExportHeader)
 
-add_library(co_go INTERFACE callback.hpp)
+add_library(co_go INTERFACE continuation.hpp)
 add_library(myproject::co_go ALIAS co_go)
 
 target_link_libraries(co_go INTERFACE myproject_options myproject_warnings)
