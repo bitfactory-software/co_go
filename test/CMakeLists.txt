@@ -19,7 +19,7 @@ endif()
 
 include(${Catch2_SOURCE_DIR}/extras/Catch.cmake)
 
-add_executable(tests tests.cpp)
+add_executable(tests tests.cpp continuation_test_sync_async.cpp)
 target_link_libraries(
   tests
   PRIVATE cogoproject::cogoproject_warnings

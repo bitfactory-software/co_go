@@ -100,7 +100,7 @@ TEST_CASE("int async [continuation]") {
   CHECK(called);
 }
 
-TEST_CASE("int async indirect [continuation]") {
+ TEST_CASE("int async indirect [continuation]") {
   auto id_start = std::this_thread::get_id();
   auto called = false;
   [&] -> co_go::continuation<void> {
