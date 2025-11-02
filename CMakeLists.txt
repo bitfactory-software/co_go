@@ -25,17 +25,17 @@ project(
 include(cmake/PreventInSourceBuilds.cmake)
 include(ProjectOptions.cmake)
 
-set(COGO_IS_TOP)
+set(cogoproject_is_top)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  set(COGO_IS_TOP ON)
+  set(cogoproject_is_top ON)
 endif()
-message("COGO_IS_TOP: " ${COGO_IS_TOP})
+message("cogoproject_is_top: " ${cogoproject_is_top})
 
 cogoproject_setup_options()
 
 cogoproject_global_options()
 include(Dependencies.cmake)
-cogoproject_setup_dependencies(COGO_IS_TOP)
+cogoproject_setup_dependencies(cogoproject_is_top)
 
 cogoproject_local_options()
 
@@ -66,7 +66,7 @@ add_subdirectory(configured_files)
 add_subdirectory(co_go)
 
 # Don't even look at tests if we're not top level
-if(NOT COGO_IS_TOP)
+if(NOT cogoproject_is_top)
   return()
 endif()
 

@@ -8,12 +8,12 @@ function(cogoproject_setup_dependencies)
   # For each dependency, see if it's
   # already been provided to us by a parent project
 
-  if(NOT COGO_IS_TOP)
+  if(NOT cogoproject_is_top)
     message("co_go -> no dependecies required")
     return()
   endif()
 
-  message("cpm add packages: ") 
+  message("cpm add packages...") 
 
 #  if(NOT TARGET fmtlib::fmtlib)
 #    cpmaddpackage("gh:fmtlib/fmt#11.1.4")
