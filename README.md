@@ -168,18 +168,10 @@ co_send_request(std::string const& request)
 ```
 
 ✅ Business logic requires **no changes**
+
 ✅ Underlying transport switches from sync → async
+
 ✅ Same coroutine flow now runs without blocking
-
----
-
-## Summary
-
-`co_go::continuation<T>` allows you to:
-
-* keep sequential UI-driven logic
-* port cleanly to async architectures
-* without rewriting business workflows into callbacks
 
 ---
 
@@ -196,7 +188,7 @@ co_send_request(std::string const& request)
 2. Write coroutine-based UI logic:
 
 ```cpp
-co_go::continuation<void> run_flow()
+co_go::continuation<void> run()
 {
     if (co_await show_message_box("Proceed?", {"Yes", "No"}) != "Yes")
         co_return;
@@ -209,7 +201,7 @@ co_go::continuation<void> run_flow()
 3. Start the coroutine from your UI environment:
 
 ```cpp
-run_flow(); // automatically starts and resumes on the UI thread
+run(); // automatically starts and resumes on the UI thread
 ```
 
 ---
