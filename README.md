@@ -5,8 +5,11 @@ Write clean **sequential** code — run it on **callback-based** asynchronous sy
 `co_go::continuation` enables porting classic **blocking** code (UI, networking, filesystem, protocols) into event-driven architectures **without rewriting logic into callbacks**.
 
 ✔ Keep linear control flow (`if`, `for`, exceptions)
+
 ✔ Decouple business logic from UI/network async APIs
+
 ✔ Works with **any** callback-based API — no specific framework required
+
 ✔ No thread switching — resumes where the callback runs
 
 ---
