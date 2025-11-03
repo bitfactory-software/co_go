@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/cpp-best-practices/cmake_template/branch/main/graph/badge.svg)](https://codecov.io/gh/cpp-best-practices/cmake_template)
 [![CodeQL](https://github.com/cpp-best-practices/cmake_template/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/cpp-best-practices/cmake_template/actions/workflows/codeql-analysis.yml)
 
-## Why "co_go::continuation"?
+## Why co_go::continuation?
 
 Our product had its origin as a classic Windows application. In that envirionmet you can write great parts of the user interface in a sequetial manner via 'modal dialogs'. That looks like this:
 
