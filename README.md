@@ -222,17 +222,3 @@ This allows integration with Qt/QML, Win32, and other event-loop environments **
 If thread marshalling is required (e.g. enforcing GUI-thread only),
 this should be handled by the UI framework or a helper layer.
 
----
-
-## Marketing-Style Introduction (for README top)
-
-**co_go** brings Windows-style sequential UI logic to modern asynchronous UI frameworks.
-
-> Write code that reads like a modal dialog — but runs inside callback-driven event loops.
-
-✔ No callback nesting
-✔ No rewriting legacy business logic
-✔ Clean coroutine control flow
-✔ Works with QML, Win32, and more
-
----
