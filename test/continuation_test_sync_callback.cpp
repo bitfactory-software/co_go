@@ -1,9 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
-#include <co_go/continuation.hpp>
 #include <functional>
 #include <future>
 #include <print>
+
+#define CO_GO_CONTINUATION_TEST
+#include <co_go/continuation.hpp>
 
 namespace {
 int step = 1;
@@ -26,27 +28,6 @@ co_go::continuation<int> int_recieve_coro_indirect() {
   co_return x + 1;
 };
 // - lib wrapped for coro style
-
-#ifdef __clang__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#endif
-void api_async_callback_throws_unhandled_in_calling_thread(
-    [[maybe_unused]] const std::function<void(int)>& callback) noexcept {
-  // vvv not allowed, does not compile!
-  // throw std::runtime_error("test_Exception in calling thread");
-}
-void api_async_callback_throws_unhandled_in_background_thread(
-    [[maybe_unused]] const std::function<void(int)>& callback) noexcept {
-  std::thread([=] {
-    // not allowed, but compiles because not affected by noexecpt of enclosing
-    // function
-    throw std::runtime_error("test_Exception in worker thread");
-  }).join();
-#ifdef __clang__
-#pragma GCC diagnostic pop
-#endif
-}
 
 }  // namespace
 
@@ -122,3 +103,4 @@ TEST_CASE("int async indirect [continuation]") {
   }();
   CHECK(called);
 }
+

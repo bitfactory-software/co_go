@@ -23,6 +23,7 @@ static_assert(!co_go::is_noexept_callback_api<int, decltype(func1)>);
 static_assert(co_go::is_noexept_callback_api<int, decltype(func2)>);
 
 std::thread a_thread;
+std::thread::id a_threads_id = {};
 bool continuations_run = false;
 
 void api_async(const std::function<void(int)>& callback) noexcept {
@@ -39,6 +40,34 @@ void api_async_callback_no_called(
   a_thread = std::thread([=] {
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(10ms);
+    // this will leak the waiting coroutines...
+  });
+}
+
+#ifdef __clang__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+void api_async_callback_throws_unhandled_in_calling_thread(
+    [[maybe_unused]] const std::function<void(int)>& callback) noexcept {
+  // vvv not allowed, does not compile!
+  // throw std::runtime_error("test_Exception in calling thread");
+}
+#ifdef __clang__
+#pragma GCC diagnostic pop
+#endif
+
+void api_async_callback_throws_in_background_thread(
+    [[maybe_unused]] const std::function<void(int)>& callback) noexcept {
+  a_thread = std::thread([=] {
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(10ms);
+    try {
+      throw std::runtime_error("Exception in worker thread");
+    } catch (...) {  // must catch
+      a_threads_id = std::this_thread::get_id();
+      callback(-1);  // signal error
+    }
   });
 }
 
@@ -186,6 +215,41 @@ TEST_CASE("api_async_callback_no_called") {
   CHECK(co_go::continuation_promise_count ==
         1);  // <- leaks, because callback not invoked!
   co_go::continuation_promise_count = 0;
+}
+
+namespace {
+namespace fixture {
+co_go::continuation<int>
+api_async_callback_throws_in_background_thread_wrapped() {
+  co_return co_await co_go::await_callback_async<int>(
+      fixture::api_async_callback_throws_in_background_thread);
+}
+}  // namespace fixture
+}  // namespace
+
+TEST_CASE("api_async_callback_throws_in_background_thread [continuation]") {
+  CHECK(co_go::continuation_promise_count == 0);
+  {
+    bool resumed = false;
+    co_go::dont_await([&] -> co_go::continuation<> {
+      try {
+        auto id_start = std::this_thread::get_id();
+        auto error = co_await fixture::
+            api_async_callback_throws_in_background_thread_wrapped();
+        CHECK(error == -1);
+        auto id_continuation = std::this_thread::get_id();
+        CHECK(id_start != id_continuation);
+        CHECK(id_start != id_continuation);
+        resumed = true;
+
+      } catch (std::runtime_error& e) {
+        CHECK(false);
+      }
+    }());
+    fixture::a_thread.join();
+    CHECK(resumed);
+  }
+  CHECK(co_go::continuation_promise_count == 0);
 }
 
 TEST_CASE("Asynchron") {
