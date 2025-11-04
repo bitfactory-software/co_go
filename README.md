@@ -4,13 +4,10 @@ Write clean **sequential** code — run it on **callback-based** asynchronous sy
 
 `co_go::continuation` enables porting classic **blocking** code (UI, networking, filesystem, protocols) into event-driven architectures **without rewriting logic into callbacks**.
 
-✔ Keep linear control flow (`if`, `for`, exceptions)
-
-✔ Decouple business logic from UI/network async APIs
-
-✔ Works with **any** callback-based API — no specific framework required
-
-✔ No thread switching — resumes where the callback runs
+* ✔ Keep linear control flow (`if`, `for`, exceptions)
+* ✔ Decouple business logic from UI/network async APIs
+* ✔ Works with **any** callback-based API — no specific framework required
+* ✔ No thread switching — resumes where the callback runs
 
 ---
 
@@ -24,12 +21,13 @@ if (show_message_box_win("Continue?", {"Yes", "No"}) != "Yes")
 // continue(!) with further processing
 ```
 
-In modern programming models, such as **QML**, this pattern becomes **callback-based**:
+In more modern programming models, such as **QML**, this pattern becomes **callback-based**:
 
 ```cpp
 show_message_box_qml("Continue?", {"Yes", "No"}, [&](std::string_view choice) {
     // continue(!) with further processing
 });
+} // usually the end of the function
 ```
 
 However, rewriting existing business logic into callback pyramids is painful — especially when the UI layer must change but the logic must stay the same.
@@ -50,8 +48,8 @@ if (co_await show_message_box("Continue?", {"Yes", "No"}) != "Yes")
 
 `co_go::continuation<T>` provides:
 
-* ✅ Suspend & resume anywhere — including on the UI thread
-* ✅ Zero callback nesting → linear, readable control flow
+* ✅ Suspend & resume anywhere including on the UI thread
+* ✅ Zero callback nesting → linear readable control flow
 * ✅ One coroutine API supports both modal and async UI
 * ✅ GUI event loop compatible (Qt/QML/etc.)
 * ✅ Ideal migration path for large legacy codebases
@@ -98,15 +96,13 @@ Here, `_1` represents the callback that `await_callback_async` uses to resume th
 ### Porting Synchronous APIs to Asynchronous Callback APIs
 
 `co_go::continuation` is not limited to UI workflows.
-It can modernize **any** blocking API — networking, filesystem, protocols, etc.
+It can be used to modernize **any** blocking API — such as networking, filesystem, or communication protocols.
 
-Typical migration:
+A typical migration:
 
-1️⃣ Wrap existing synchronous APIs using `co_go::continuation`
-
-2️⃣ Update business logic to use `co_await`
-
-3️⃣ Replace the underlying implementation with async callbacks
+* 1️⃣ Wrap existing synchronous APIs using `co_go::continuation`
+* 2️⃣ Update business logic to use `co_await`
+* 3️⃣ Replace the underlying implementation with async callbacks
 
 ---
 
@@ -143,6 +139,7 @@ co_go::continuation<void> protocol_flow()
 
     auto data = co_await co_send_request("GET DATA");
     process(data);
+    co_return;
 }
 ```
 
@@ -168,10 +165,18 @@ co_send_request(std::string const& request)
 ```
 
 ✅ Business logic requires **no changes**
-
 ✅ Underlying transport switches from sync → async
+✅ The same coroutine flow now runs without blocking
 
-✅ Same coroutine flow now runs without blocking
+---
+
+## Summary
+
+`co_go::continuation<T>` lets us:
+
+* keep sequential UI-driven logic
+* port to async architectures cleanly
+* without rewriting business workflows into callbacks
 
 ---
 
@@ -188,7 +193,7 @@ co_send_request(std::string const& request)
 2. Write coroutine-based UI logic:
 
 ```cpp
-co_go::continuation<void> run()
+co_go::continuation<void> run_flow()
 {
     if (co_await show_message_box("Proceed?", {"Yes", "No"}) != "Yes")
         co_return;
@@ -201,16 +206,16 @@ co_go::continuation<void> run()
 3. Start the coroutine from your UI environment:
 
 ```cpp
-run(); // automatically starts and resumes on the UI thread
+run_flow(); // automatically starts and resumes on the UI thread
 ```
 
 ---
 
 ## Error Handling & Cancellation
 
-* Exceptions inside the coroutine propagate through `co_await`.
+* Exceptions thrown inside the coroutine propagate through `co_await`.
 * UI-side cancellations (e.g. dialog closed) should resume with a special value.
-* Because the callback can only receive one parameter, you must pack an error code into a struct/tuple or use `std::expected`.
+* because the callback can only revieve on parameter, you must pack an error code into a struct, tuple or a std::expect 
 
 Example:
 
@@ -222,7 +227,7 @@ try {
 }
 ```
 
-Cancellation behavior is entirely under application control.
+Cancellation behavior is entirely under the application's control.
 
 ---
 
@@ -230,11 +235,13 @@ Cancellation behavior is entirely under application control.
 
 `co_go::continuation` does **not** switch threads on its own.
 
-Where the coroutine resumes depends entirely on **where the callback is invoked**:
+Where the coroutine resumes depends entirely on **where the callback is invoked**.
 
-* Callback fires on UI thread → coroutine continues on UI thread ✅
-* Callback fires on worker thread → coroutine continues on worker thread ⚠️
+This means:
 
-This allows integration with Qt/QML, Win32, and other event-loop environments **without enforcing a threading model**.
+* If the callback fires on the UI thread → coroutine continues on the UI thread ✅
+* If the callback fires on a worker thread → coroutine continues there ⚠️
+
+This allows integration with Qt/QML, Win32, and other event-loop environments **without forcing a specific threading model**.
 
 ---
