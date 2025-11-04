@@ -27,14 +27,14 @@ co_go::continuation<int> int_recieve_coro_indirect() {
 };
 // - lib wrapped for coro style
 
-// + lib callback style
-auto void_callback_api(std::function<void(void)> const& callback) {
-  std::println("before callback");
-  CHECK(step++ == 1);
-  callback();
-  std::println("after callback");
-  CHECK(step++ == 3);
-};
+//// + lib callback style
+//auto void_callback_api(std::function<void(void)> const& callback) {
+//  std::println("before callback");
+//  CHECK(step++ == 1);
+//  callback();
+//  std::println("after callback");
+//  CHECK(step++ == 3);
+//};
 
 }  // namespace
 

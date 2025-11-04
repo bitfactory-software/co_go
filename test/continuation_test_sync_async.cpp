@@ -9,8 +9,15 @@
 
 namespace {
 namespace fixture {
+#ifdef __clang__  
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunneeded-internal-declaration"
+#endif  // _MSC_VER 
 auto func1(std::function<void(int)> const& callback) noexcept(false) -> void;
 auto func2(std::function<void(int)> const& callback) noexcept -> void;
+#ifdef __clang__  
+#pragma GCC diagnostic pop
+#endif  // _MSC_VER 
 
 static_assert(!co_go::is_noexept_callback_api<int, decltype(func1)>);
 static_assert(co_go::is_noexept_callback_api<int, decltype(func2)>);

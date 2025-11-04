@@ -50,11 +50,11 @@ class continuation {
     bool sync_ = true;
     bool awaited_ = true;
   };
-  template <typename R>
+  template <typename Ret>
   struct handle_return {
-    void return_value(R result) { result_ = result; }
+    void return_value(Ret result) { result_ = std::move(result); }
     auto return_result(this auto& self, auto& coroutine) {
-      auto result = self.result_;
+      auto result = std::move(self.result_);
       if (!self.awaited_) coroutine.destroy();
       return result;
     }
