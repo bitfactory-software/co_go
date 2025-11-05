@@ -101,8 +101,19 @@ co_show_message_box(std::string const& prompt,
     );
 }
 ```
-
 Here, `_1` represents the callback that `await_callback_async` uses to resume the coroutine with the result.
+
+---
+
+## Comparison to other C++20 coroutine libraries
+
+| Library       | Link | Primary Focus / Design Goal | Special Strength | Lazy vs Eager Execution | I/O / Executor Integration | Multi-Thread / Parallelism | Interop Difficulty w/ Legacy Callbacks |
+|---------------|------|----------------------------|------------------|------------------------|---------------------------|----------------------------|----------------------------------------|
+| co_go         | https://github.com/bitfactory-software/co_go | Turn *callback-based async* APIs into `co_await` | ✅ Callback → `co_await` bridge | depends on callback | depends on wrapped API | depends on wrapped API | very easy; core purpose |
+| Boost.Cobalt  | https://github.com/boostorg/cobalt | Coroutine-enabled async I/O with Boost.Asio | High-level async I/O primitives | mostly *eager* | excellent Asio integration | controlled / single-thread exec | no example found |
+| cppcoro       | https://github.com/lewissbaker/cppcoro | Generic coroutine primitives & algorithms | Flexible coroutine building blocks | mostly *lazy* | generic & plug-in friendly | moderate | no example found |
+| libcoro       | https://github.com/jbaldwin/libcoro | Multi-threaded async runtime with schedulers + I/O | Large-scale parallel coroutine runtime | depends on awaitable | built-in I/O & schedulers | strong thread-pool parallelism | no example found |
+
 
 ---
 
