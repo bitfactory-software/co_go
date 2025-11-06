@@ -25,7 +25,7 @@ co_go::continuation<std::string> co_op()
 
 ---
 
-## Why `co_go::continuation`?
+## Why we made `co_go::continuation`?
 
 Our product originated as a classic Windows application. In that environment, user interface logic often used **modal dialogs**, making code naturally **sequential**:
 
