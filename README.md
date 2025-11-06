@@ -12,7 +12,7 @@ std::string legacy_blocking_op();
 void legacy_sync_or_async_op(std::function<void(std::string)> const& callback) noexcept;
 
 // ✔ New coroutine wrapper
-co_go::continuation<std::string> co_op(bool use_legacy_blocking)
+co_go::continuation<std::string> any_op(bool use_legacy_blocking)
 {
     if (use_legacy_blocking) {
         co_return legacy_blocking_op();
