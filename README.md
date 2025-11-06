@@ -1,4 +1,4 @@
-# co_go: Opaque First-Class Continuation Coroutine for C++
+# co_go: Opaque Continuation Coroutine for C++
 
 Write clean **sequential** code — run it on **callback-based** synchronous and asynchronous systems.
 
