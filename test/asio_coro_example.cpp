@@ -52,17 +52,28 @@ void async_api_string_view_int(
     callback("hello world", 42);
     std::println("after call to continuation async_api");
   });
-};
+}
+  void async_api_bool_double_to_string_view_int(
+      bool, int, std::function<void(std::string_view, int)> callback) noexcept {
+    auto unused = std::async(std::launch::async, [=] {
+      using namespace std::chrono_literals;
+      std::this_thread::sleep_for(10ms);
+      std::println("sleep on thread {}", std::this_thread::get_id());
+      callback("hello world", 42);
+      std::println("after call to continuation async_api");
+    });
+  }
 
-static_assert(
-    !co_go::is_noexept_callback_api_v<decltype(async_api_string_view_int),
-                                      std::tuple<std::string_view, int>>);
-static_assert(co_go::is_noexept_callback_api_v<
-              decltype(async_api_string_view_int), std::string_view, int>);
+  static_assert(
+      !co_go::is_noexept_callback_api_v<decltype(async_api_string_view_int),
+                                        std::tuple<std::string_view, int>>);
+  static_assert(
+      co_go::is_noexept_callback_api_v<decltype(async_api_string_view_int),
+                                       std::string_view, int>);
 }  // namespace fixture
 }  // namespace
 
-TEST_CASE("async_api_string_view_int 1") {
+TEST_CASE("async_api_string_view_int") {
   auto called = false;
   [&] -> co_go::continuation<void> {
     auto [s, i] = co_await co_go::callback_async<std::string_view, int>(
@@ -73,3 +84,15 @@ TEST_CASE("async_api_string_view_int 1") {
   }();
   CHECK(called);
 }
+
+//TEST_CASE("async_api_bool_double_to_string_view_int") {
+//  auto called = false;
+//  [&] -> co_go::continuation<void> {
+//    auto [s, i] = co_await co_go::callback_async<std::string_view, int>(
+//        fixture::async_api_bool_double_to_string_view_int, true, 3.14);
+//    CHECK(s == "hello world");
+//    CHECK(i == 42);
+//    called = true;
+//  }();
+//  CHECK(called);
+//}
