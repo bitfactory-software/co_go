@@ -156,7 +156,7 @@ co_go::continuation<> test_5_catched(auto&& throws) {
 
 TEST_CASE("SimpleSynchron") {
   {
-    dont_await(fixture::test_1_sync());
+    spawn(fixture::test_1_sync());
   }
   CHECK(co_go::continuation_promise_count == 0);
 }
@@ -164,7 +164,7 @@ TEST_CASE("SimpleSynchron") {
 TEST_CASE("Synchron") {
   {
     fixture::continuations_run = false;
-    dont_await(fixture::test_4(&fixture::test_1_sync));
+    spawn(fixture::test_4(&fixture::test_1_sync));
     CHECK(fixture::continuations_run);
   }
   CHECK(co_go::continuation_promise_count == 0);
@@ -187,14 +187,14 @@ TEST_CASE("SynchronAccess_return_value") {
 
 TEST_CASE("SynchronWithException") {
   {
-    dont_await(fixture::test_5_catched(&fixture::test_1_sync_with_exception));
+    spawn(fixture::test_5_catched(&fixture::test_1_sync_with_exception));
   }
   CHECK(co_go::continuation_promise_count == 0);
 }
 
 TEST_CASE("AsynchronWithException") {
   {
-    dont_await(fixture::test_5_catched(&fixture::test_1_async_with_exception));
+    spawn(fixture::test_5_catched(&fixture::test_1_async_with_exception));
     fixture::a_thread.join();
   }
   CHECK(co_go::continuation_promise_count == 0);
@@ -231,7 +231,7 @@ TEST_CASE("api_async_callback_throws_in_background_thread [continuation]") {
   CHECK(co_go::continuation_promise_count == 0);
   {
     bool resumed = false;
-    co_go::dont_await([&] -> co_go::continuation<> {
+    co_go::spawn([&] -> co_go::continuation<> {
       auto id_start = std::this_thread::get_id();
       auto error = co_await fixture::
           api_async_callback_throws_in_background_thread_wrapped();
@@ -250,7 +250,7 @@ TEST_CASE("api_async_callback_throws_in_background_thread [continuation]") {
 TEST_CASE("Asynchron") {
   {
     fixture::continuations_run = false;
-    dont_await(fixture::test_4(&fixture::test_1_async));
+    spawn(fixture::test_4(&fixture::test_1_async));
   }
   CHECK(!fixture::continuations_run);
   std::println("main after test_4");

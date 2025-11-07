@@ -216,6 +216,6 @@ continuation<CallbackArgs...> callback_async(auto&& api) {
 }
 
 template <typename... R>
-void dont_await([[maybe_unused]] continuation<R...>&& c) {}
+void spawn([[maybe_unused]] continuation<R...>&& c) {}
 
 }  // namespace co_go
