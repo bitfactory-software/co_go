@@ -213,9 +213,7 @@ TEST_CASE("api_async_callback_no_called") {
     CHECK(!resumed);
   }
   CHECK(co_go::continuation_promise_count ==
-        0);   // <- CAN LEAK, because callback not invoked!
-              // depends, on management in of threadpool....
-              // 
+        1);  // <- LEAKS, because callback not invoked!
   co_go::continuation_promise_count = 0;
 }
 

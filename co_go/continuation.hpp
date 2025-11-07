@@ -194,9 +194,9 @@ struct continuation_awaiter {
 };
 
 template <synchronisation sync_or_async, typename... CallbackArgs>
-auto callback(auto&& api) {
+continuation<CallbackArgs...> callback(auto&& api) {
   using api_t = decltype(api);
-  return continuation_awaiter<sync_or_async, std::decay_t<api_t>,
+  co_return co_await continuation_awaiter<sync_or_async, std::decay_t<api_t>,
                                           CallbackArgs...>{
       std::forward<api_t>(api)};
 }
@@ -209,7 +209,7 @@ auto callback_sync(auto&& api) {
 }
 
 template <typename... CallbackArgs>
-auto callback_async(auto&& api) {
+continuation<CallbackArgs...> callback_async(auto&& api) {
   using api_t = decltype(api);
   return callback<synchronisation::async, CallbackArgs...>(
       std::forward<api_t>(api));
