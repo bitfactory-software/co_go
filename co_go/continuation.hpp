@@ -109,81 +109,79 @@ class continuation_awaiter {
 };
 
 template <typename... Args>
-class continuation {
-  template <typename HandleReturn>
-  struct basic_promise_type : HandleReturn {
+class continuation;
+
+template <typename HandleReturn, typename... Args>
+struct basic_promise_type : HandleReturn {
 #ifdef CO_GO_CONTINUATION_TEST
-    basic_promise_type() noexcept { ++continuation_promise_count; }
-    ~basic_promise_type() noexcept { --continuation_promise_count; }
+  basic_promise_type() noexcept { ++continuation_promise_count; }
+  ~basic_promise_type() noexcept { --continuation_promise_count; }
 #endif
 
-    continuation<Args...> get_return_object(this auto& self) {
-      return continuation<Args...>{
-          std::coroutine_handle<basic_promise_type>::from_promise(self)};
-    }
+  continuation<Args...> get_return_object(this auto& self);
 
-    struct await_continuation {
-      await_continuation() noexcept {}
-      bool await_ready() const noexcept { return false; }
-      void await_suspend(
-          std::coroutine_handle<basic_promise_type> this_coroutine) noexcept {
-        auto& promise = this_coroutine.promise();
-        if (promise.calling_coroutine_) promise.calling_coroutine_.resume();
-        if (promise.awaited_) return;
-        this_coroutine.destroy();
-      }
-      void await_resume() noexcept {}
-    };
-    auto initial_suspend() noexcept { return std::suspend_never{}; }
-    auto final_suspend() noexcept { return await_continuation{}; }
-    void unhandled_exception() noexcept {
-      exception_ = std::current_exception();
+  struct await_continuation {
+    await_continuation() noexcept {}
+    bool await_ready() const noexcept { return false; }
+    void await_suspend(
+        std::coroutine_handle<basic_promise_type> this_coroutine) noexcept {
+      auto& promise = this_coroutine.promise();
+      if (promise.calling_coroutine_) promise.calling_coroutine_.resume();
+      if (promise.awaited_) return;
+      this_coroutine.destroy();
     }
-    std::coroutine_handle<> calling_coroutine_ = {};
-    std::exception_ptr exception_ = {};
-    synchronisation sync_ = synchronisation::sync;
-    bool awaited_ = true;
-    void destroy_if_not_awaited(auto& coroutine) {
-      if (!awaited_) coroutine.destroy();
-    }
-  };
-  template <typename... Rs>
-  struct handle_return {
-    void return_value(this auto& self, std::tuple<Rs...> result) {
-      self.result_ = std::move(result);
-    }
-    auto return_result(this auto& self, auto& coroutine) {
-      auto result = std::move(self.result_);
-      self.destroy_if_not_awaited(coroutine);
-      return result;
-    }
-    std::tuple<Rs...> result_ = {};
-  };
-  template <typename Ret>
-  struct handle_return<Ret> {
-    void return_value(Ret result) { result_ = std::move(result); }
-    auto return_result(this auto& self, auto& coroutine) {
-      auto result = std::move(self.result_);
-      self.destroy_if_not_awaited(coroutine);
-      return result;
-    }
-    Ret result_ = {};
-  };
-  template <>
-  struct handle_return<> {
-    void return_void() {};
-    auto return_result(this auto& self, auto& coroutine) {
-      self.destroy_if_not_awaited(coroutine);
-    }
+    void await_resume() noexcept {}
   };
 
+  auto initial_suspend() noexcept { return std::suspend_never{}; }
+  auto final_suspend() noexcept { return await_continuation{}; }
+
+  void unhandled_exception() noexcept { exception_ = std::current_exception(); }
+
+  std::coroutine_handle<> calling_coroutine_ = {};
+  std::exception_ptr exception_ = {};
+  synchronisation sync_ = synchronisation::sync;
+  bool awaited_ = true;
+  void destroy_if_not_awaited(auto& coroutine) {
+    if (!awaited_) coroutine.destroy();
+  }
+};
+
+template <typename... Rs>
+struct handle_return {
+  void return_value(this auto& self, std::tuple<Rs...> result) {
+    self.result_ = std::move(result);
+  }
+  auto return_result(this auto& self, auto& coroutine) {
+    auto result = std::move(self.result_);
+    self.destroy_if_not_awaited(coroutine);
+    return result;
+  }
+  std::tuple<Rs...> result_ = {};
+};
+template <typename Ret>
+struct handle_return<Ret> {
+  void return_value(Ret result) { result_ = std::move(result); }
+  auto return_result(this auto& self, auto& coroutine) {
+    auto result = std::move(self.result_);
+    self.destroy_if_not_awaited(coroutine);
+    return result;
+  }
+  Ret result_ = {};
+};
+template <>
+struct handle_return<> {
+  void return_void() {};
+  auto return_result(this auto& self, auto& coroutine) {
+    self.destroy_if_not_awaited(coroutine);
+  }
+};
+
+template <typename... Args>
+class continuation {
  public:
-  using promise_type = basic_promise_type<handle_return<Args...>>;
+  using promise_type = basic_promise_type<handle_return<Args...>, Args...>;
 
- private:
-  continuation_awaiter<promise_type, Args...> awaiter_;
-
- public:
   continuation& operator=(const continuation&) = delete;
   continuation& operator=(continuation&& r) = delete;
   continuation(const continuation&) = delete;
@@ -206,7 +204,17 @@ class continuation {
 
   auto coroutine() const { return awaiter_.coroutine(); }
   bool is_sync() const { return awaiter_.is_sync(); }
+
+ private:
+  continuation_awaiter<promise_type, Args...> awaiter_;
 };
+
+template <typename HandleReturn, typename... Args>
+continuation<Args...>
+basic_promise_type<HandleReturn, Args...>::get_return_object(this auto& self) {
+  return continuation<Args...>{
+      std::coroutine_handle<basic_promise_type>::from_promise(self)};
+}
 
 template <typename Api, typename... CallbackArgs>
 constexpr bool is_noexept_callback_api_v =
