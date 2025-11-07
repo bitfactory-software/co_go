@@ -19,7 +19,7 @@ endif()
 
 include(${Catch2_SOURCE_DIR}/extras/Catch.cmake)
 
-add_executable(tests  asio_coro_example.cpp continuation_test_sync_async.cpp continuation_test_sync_callback.cpp)
+add_executable(tests  api_variants.cpp continuation_test_sync_async.cpp continuation_test_sync_callback.cpp)
 target_link_libraries(
   tests
   PRIVATE cogoproject::cogoproject_warnings

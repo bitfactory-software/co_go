@@ -87,7 +87,7 @@ TEST_CASE("async_api_string_view_int") {
 
 //TEST_CASE("async_api_bool_double_to_string_view_int") {
 //  auto called = false;
-//  [&] -> co_go::continuation<void> {
+//  [&] -> co_go::continuation<> {
 //    auto [s, i] = co_await co_go::callback_async<std::string_view, int>(
 //        fixture::async_api_bool_double_to_string_view_int, true, 3.14);
 //    CHECK(s == "hello world");
