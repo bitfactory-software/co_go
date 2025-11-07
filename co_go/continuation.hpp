@@ -33,6 +33,26 @@ struct result_t_impl<> {
 template <typename... Args>
 using result_t = result_t_impl<Args...>;
 
+template <synchronisation sync_or_async, typename Api, typename... CallbackArgs>
+  requires(is_noexept_callback_api<Api, CallbackArgs...>)
+struct callback_awaiter {
+  bool await_ready() { return false; }
+  void await_suspend(auto calling_coroutine) {
+    calling_coroutine.promise().sync_ = sync_or_async;
+    bool called = false;
+    api_([this, calling_coroutine, called](CallbackArgs&&... args) mutable {
+      if (called) return;
+      called = true;
+      result_ =
+          result_t<CallbackArgs...>::make(std::forward<CallbackArgs>(args)...);
+      calling_coroutine.resume();
+    });
+  }
+  auto await_resume() { return result_; }
+  const Api api_;
+  result_t<CallbackArgs...>::type result_ = {};
+};
+
 template <typename... Args>
 class continuation {
   static void build_async_chain(auto suspended_coroutine,
@@ -173,31 +193,10 @@ template <typename Api, typename... CallbackArgs>
 concept is_noexept_callback_api =
     is_noexept_callback_api_v<Api, CallbackArgs...>;
 
-
-template <synchronisation sync_or_async, typename Api, typename... CallbackArgs>
-  requires(is_noexept_callback_api<Api, CallbackArgs...>)
-struct continuation_awaiter {
-  bool await_ready() { return false; }
-  void await_suspend(auto calling_coroutine) {
-    calling_coroutine.promise().sync_ = sync_or_async;
-    bool called = false;
-    api_([this, calling_coroutine, called](CallbackArgs&&... args) mutable {
-      if (called) return;
-      called = true;
-      result_ =
-          result_t<CallbackArgs...>::make(std::forward<CallbackArgs>(args)...);
-      calling_coroutine.resume();
-    });
-  }
-  auto await_resume() { return result_; }
-  const Api api_;
-  result_t<CallbackArgs...>::type result_ = {};
-};
-
 template <synchronisation sync_or_async, typename... CallbackArgs>
 continuation<CallbackArgs...> callback(auto&& api) {
   using api_t = decltype(api);
-  co_return co_await continuation_awaiter<sync_or_async, std::decay_t<api_t>,
+  co_return co_await callback_awaiter<sync_or_async, std::decay_t<api_t>,
                                           CallbackArgs...>{
       std::forward<api_t>(api)};
 }
