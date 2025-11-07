@@ -119,57 +119,73 @@ class continuation {
   bool is_sync() const { return coroutine_.promise().sync_; }
 };
 
-template <typename R, typename Api>
+template <typename Api, typename... CallbackArgs>
 constexpr bool is_noexept_callback_api_v =
-    noexcept(std::declval<Api>()(std::declval<void (*)(R const&) noexcept>()));
+    std::is_nothrow_invocable_r_v<void, Api,
+                                  std::function<void(CallbackArgs...)>>;
 
-template <typename R, typename Api>
+template <typename Api, typename CallbackArg>
+constexpr bool is_noexept_callback_api_v<Api, CallbackArg> =
+    (!std::same_as<CallbackArg, void>) &&
+    std::is_nothrow_invocable_r_v<void, Api, std::function<void(CallbackArg)>>;
+
+template <typename Api, typename... CallbackArgs>
 concept is_noexept_callback_api =
-    (!std::same_as<R, void>) &&
-    std::is_nothrow_invocable_r_v<void, Api, std::function<void(R)>>;
+    is_noexept_callback_api_v<Api, CallbackArgs...>;
 
 enum class synchronisation { sync, async };
 
-template <typename R, typename Api,
-          synchronisation sync_or_async = synchronisation::sync>
-  requires(is_noexept_callback_api<R, Api>)
+template <synchronisation sync_or_async, typename Api, typename... CallbackArgs>
+  requires(is_noexept_callback_api<Api, CallbackArgs...>)
 struct continuation_awaiter {
+  template <typename... Args>
+  struct result_t_impl {
+    using type = std::tuple<Args...>;
+    static auto make(CallbackArgs... args) {
+      return std::make_tuple(std::forward<CallbackArgs>(args)...);
+    }
+  };
+  template <typename Arg>
+  struct result_t_impl<Arg> {
+    using type = Arg;
+    static auto make(Arg arg) { return std::forward<Arg>(arg); }
+  };
+  using result_t = typename result_t_impl<CallbackArgs...>;
   bool await_ready() { return false; }
   void await_suspend(auto calling_coroutine) {
     calling_coroutine.promise().sync_ = sync_or_async == synchronisation::sync;
     bool called = false;
-    api_([this, calling_coroutine, called](const R& r) mutable {
+    api_([this, calling_coroutine, called](CallbackArgs&&... args) mutable {
       if (called) return;
       called = true;
-      result_ = r;
+      result_ = result_t::make(std::forward<CallbackArgs>(args)...);
       calling_coroutine.resume();
     });
   }
-  R await_resume() { return result_; }
+  auto await_resume() { return result_; }
   const Api api_;
-  R result_ = {};
+  result_t::type result_ = {};
 };
 
-template <typename R, synchronisation sync_or_async, typename Api>
-auto await_callback(Api&& api)
-  requires is_noexept_callback_api<R, Api>
-{
-  return continuation_awaiter<R, std::decay_t<Api>, sync_or_async>{
-      std::move(api)};
+template <synchronisation sync_or_async, typename... CallbackArgs>
+auto await_callback(auto&& api) {
+  using api_t = decltype(api);
+  return continuation_awaiter<sync_or_async, std::decay_t<api_t>,
+                              CallbackArgs...>{std::forward<api_t>(api)};
 }
 
-template <typename R, typename Api>
-auto await_callback_sync(Api&& api)
-  requires is_noexept_callback_api<R, Api>
-{
-  return await_callback<R, synchronisation::sync, Api>(std::move(api));
+template <typename... CallbackArgs>
+auto await_callback_sync(auto&& api) {
+  using api_t = decltype(api);
+  return await_callback<synchronisation::sync, CallbackArgs...>(
+      std::forward<api_t>(api));
 }
 
-template <typename R, typename Api>
-auto await_callback_async(Api&& api)
-  requires is_noexept_callback_api<R, Api>
-{
-  return await_callback<R, synchronisation::async, Api>(std::move(api));
+template <typename... CallbackArgs>
+auto await_callback_async(auto&& api) {
+  using api_t = decltype(api);
+  return await_callback<synchronisation::async, CallbackArgs...>(
+      std::forward<api_t>(api));
 }
 
 template <typename R>
