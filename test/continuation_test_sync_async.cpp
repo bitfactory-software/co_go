@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <utility>
+#include <utility> // NOLINT(misc-include-cleaner)
 #define CA2CO_TEST
 #include <ca2co/continuation.hpp>
 
