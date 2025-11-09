@@ -7,6 +7,7 @@ on:
   release:
     types: [published]
   push:
+  
     branches:
       - main
       - develop
@@ -74,6 +75,7 @@ jobs:
         run: |
           # rename the CMake project to match the github project
           # find src include test fuzz_test cmake -type f -exec sed -i "s/myproject/${{ env.NEW_SAFE_PROJECT }}/gi" .github/constants.env CMakeLists.txt Dependencies.cmake ProjectOptions.cmake .github/workflows/ci.yml .github/workflows/codeql-analysis.yml configured_files/config.hpp.in {} +
+          # find test cmake -type f -exec sed -i "s/myproject/${{ env.NEW_SAFE_PROJECT }}/gi" .github/constants.env CMakeLists.txt Dependencies.cmake ProjectOptions.cmake .github/workflows/ci.yml .github/workflows/codeql-analysis.yml configured_files/config.hpp.in {} +
 
           # Update URL placeholders for project
           sed -i "s|%%myurl%%|${{ fromJson(steps.get_repo_meta.outputs.data).html_url }}|gi" CMakeLists.txt
@@ -82,7 +84,7 @@ jobs:
           sed -i "s/%%myorg%%/${{ env.NEW_ORG }}/g" ${{ env.TEMPLATES_PATH }}/README.md
           sed -i "s/%%myproject%%/${{ env.NEW_PROJECT }}/g" ${{ env.TEMPLATES_PATH }}/README.md
           sed -i "s|%%description%%|${{ fromJson(steps.get_repo_meta.outputs.data).description }}|g" ${{ env.TEMPLATES_PATH }}/README.md
-          mv include/myproject include/${{ env.NEW_SAFE_PROJECT }}
+          # mv include/myproject include/${{ env.NEW_SAFE_PROJECT }}
           cp ${{ env.TEMPLATES_PATH }}/README.md README.md
 
       - name: Print diff after replacement
