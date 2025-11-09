@@ -8,8 +8,8 @@ Write clean **sequential** code — run it on **callback-based** synchronous and
 // ✔ Sync blocking API.
 std::string blocking_api();
 
-// ✔ Callback API — either sync OR async, we don't care.
-void sync_or_async_callback_api(std::function<void(std::string)> const& callback) noexcept;
+// ✔ Async Callback API
+void async_callback_api(std::function<void(std::string)> const& callback) noexcept;
 
 // ✔ Continuation coroutine wrapper
 ca2co::continuation<std::string> any_api(bool use_blocking_api)
@@ -17,16 +17,14 @@ ca2co::continuation<std::string> any_api(bool use_blocking_api)
     if (use_blocking_api) {
         co_return blocking_api();
     } else {
-        // ca2co transforms callback into an awaitable continuation
-        auto sync_mode = ca2co::synchronisation::sync; // .. OR async: as you like!
-        co_return co_await ca2co::callback<std::string, sync_mode>(sync_or_async_callback_api);
+        co_return co_await ca2co::async<std::string>(async_callback_api);
     }
 }
 
 ca2co::spawn([]->ca2co::continuation<>{
     auto answer = co_await co_op();
-    process( answer);
-}); 
+    process( answer); // Is executed in the context of the underlying scheduler. Here provided be the Gui event loop. 
+});
 ```
 
 * ✅ Keep linear control flow (`if`, `for`, exceptions)
