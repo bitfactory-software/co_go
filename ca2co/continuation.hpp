@@ -3,6 +3,9 @@
 #include <functional>
 #include <variant>
 
+// Disable the "can be static" warning for the whole file
+// NOLINTBEGIN(misc-function-static)
+
 namespace ca2co {
 
 #ifdef CA2CO_TEST
@@ -70,7 +73,9 @@ class callback_awaiter {
     });
   }
   [[clang::suppress("functionStatic")]]
-  auto await_resume() { return std::move(result_); }
+  auto await_resume() /* NOLINT(functionStatic) */ {
+    return std::move(result_);
+  }
 
  private:
   synchronisation sync_or_async_;
@@ -147,7 +152,8 @@ struct basic_promise_type : HandleReturn {
   ~basic_promise_type() noexcept { --continuation_promise_count; }
 #endif
 
-  continuation<Args...> get_return_object(this auto& self);
+  continuation<Args...> get_return_object(
+      this auto& self);  // NOLINT(functionStatic)
 
   struct await_continuation {
     await_continuation() noexcept {}
@@ -179,11 +185,13 @@ struct basic_promise_type : HandleReturn {
 template <typename... Rs>
 struct handle_return {
   [[clang::suppress("functionStatic")]]
-  void return_value(this auto& self, std::tuple<Rs...> result) {
+  void return_value(this auto& self,
+                    std::tuple<Rs...> result) /* NOLINT(functionStatic) */ {
     self.result_ = std::move(result);
   }
   [[clang::suppress("functionStatic")]]
-  auto return_result(this auto& self, auto& coroutine) {
+  auto return_result(this auto& self,
+                     auto& coroutine) /* NOLINT(functionStatic) */ {
     auto result = std::move(self.result_);
     self.destroy_if_not_awaited(coroutine);
     return result;
@@ -193,7 +201,9 @@ struct handle_return {
 template <typename Ret>
 struct handle_return<Ret> {
   void return_value(Ret result) { result_ = std::move(result); }
-  auto return_result(this auto& self, auto& coroutine) {
+  [[clang::suppress("functionStatic")]]
+  auto return_result(this auto& self,
+                     auto& coroutine) /* NOLINT(functionStatic) */ {
     auto result = std::move(self.result_);
     self.destroy_if_not_awaited(coroutine);
     return result;
@@ -204,7 +214,8 @@ template <>
 struct handle_return<> {
   static void return_void() {};
   [[clang::suppress("functionStatic")]]
-  auto return_result(this auto& self, auto& coroutine) {
+  auto return_result(this auto& self,
+                     auto& coroutine) /* NOLINT(functionStatic) */ {
     self.destroy_if_not_awaited(coroutine);
   }
 };
@@ -260,9 +271,10 @@ class continuation {
 };
 
 template <typename HandleReturn, typename... Args>
- [[clang::suppress("functionStatic")]]
-continuation<Args...> 
- basic_promise_type<HandleReturn, Args...>::get_return_object(this auto& self) {
+[[clang::suppress("functionStatic")]]
+continuation<Args...>
+basic_promise_type<HandleReturn, Args...>::get_return_object(
+    this auto& self) /* NOLINT(functionStatic) */ {
   return continuation<Args...>{
       std::coroutine_handle<basic_promise_type>::from_promise(self)};
 }
@@ -290,3 +302,5 @@ template <typename... R>
 void spawn([[maybe_unused]] continuation<R...>&& c) {}
 
 }  // namespace ca2co
+
+// NOLINTEND(misc-function-static)
