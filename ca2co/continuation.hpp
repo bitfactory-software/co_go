@@ -57,7 +57,7 @@ class callback_awaiter {
   callback_awaiter(synchronisation sync_or_async, Api api)
     requires is_noexept_callback_api<Api, CallbackArgs...>
       : sync_or_async_(sync_or_async), api_(std::move(api)) {}
-  bool await_ready() const noexcept { return false; }
+  static bool await_ready() noexcept { return false; }
   void await_suspend(auto calling_coroutine) {
     calling_coroutine.promise().sync_ = sync_or_async_;
     bool called = false;
@@ -69,7 +69,7 @@ class callback_awaiter {
       calling_coroutine.resume();
     });
   }
-  auto await_resume() { return std::move(result_); }
+  auto await_resume() { return std::move(result_); } // NOLINT(functionStatic)
 
  private:
   synchronisation sync_or_async_;
@@ -109,7 +109,7 @@ class continuation_awaiter {
     calling_coroutine.promise().sync_ = synchronisation::async;
   }
 
-  bool await_ready() const noexcept { return false; }
+  static bool await_ready() noexcept { return false; }
   void await_suspend(auto calling_coroutine) noexcept {
     if (!coroutine_ || coroutine_.promise().sync_ == synchronisation::sync)
       calling_coroutine.resume();
@@ -150,15 +150,15 @@ struct basic_promise_type : HandleReturn {
 
   struct await_continuation {
     await_continuation() noexcept {}
-    bool await_ready() const noexcept { return false; }
-    void await_suspend(
+    static bool await_ready() noexcept { return false; }
+    static void await_suspend(
         std::coroutine_handle<basic_promise_type> this_coroutine) noexcept {
       auto& promise = this_coroutine.promise();
       if (promise.calling_coroutine_) promise.calling_coroutine_.resume();
       if (promise.awaited_) return;
       this_coroutine.destroy();
     }
-    void await_resume() noexcept {}
+    static void await_resume() noexcept {}
   };
 
   static auto initial_suspend() noexcept { return std::suspend_never{}; }
@@ -177,10 +177,10 @@ struct basic_promise_type : HandleReturn {
 
 template <typename... Rs>
 struct handle_return {
-  void return_value(this auto& self, std::tuple<Rs...> result) {
+  void return_value(this auto& self, std::tuple<Rs...> result) { // NOLINT(functionStatic)
     self.result_ = std::move(result);
   }
-  auto return_result(this auto& self, auto& coroutine) {
+  auto return_result(this auto& self, auto& coroutine) { // NOLINT(functionStatic)
     auto result = std::move(self.result_);
     self.destroy_if_not_awaited(coroutine);
     return result;
@@ -257,7 +257,7 @@ class continuation {
 
 template <typename HandleReturn, typename... Args>
 continuation<Args...>
-basic_promise_type<HandleReturn, Args...>::get_return_object(this auto& self) {
+basic_promise_type<HandleReturn, Args...>::get_return_object(this auto& self) { // NOLINT(functionStatic)
   return continuation<Args...>{
       std::coroutine_handle<basic_promise_type>::from_promise(self)};
 }
@@ -271,14 +271,14 @@ auto callback(synchronisation sync_or_async, auto&& api) {
 template <typename... CallbackArgs>
 auto callback_sync(auto&& api) {
   using api_t = decltype(api);
-  return callback<CallbackArgs...>(synchronisation::sync, 
-      std::forward<api_t>(api));
+  return callback<CallbackArgs...>(synchronisation::sync,
+                                   std::forward<api_t>(api));
 }
 template <typename... CallbackArgs>
 auto callback_async(auto&& api) {
   using api_t = decltype(api);
-  return callback<CallbackArgs...>(synchronisation::async, 
-      std::forward<api_t>(api));
+  return callback<CallbackArgs...>(synchronisation::async,
+                                   std::forward<api_t>(api));
 }
 
 template <typename... R>
