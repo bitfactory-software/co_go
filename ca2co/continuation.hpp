@@ -3,8 +3,18 @@
 #include <functional>
 #include <variant>
 
-// Disable the "can be static" warning for the whole file
-// NOLINTBEGIN(misc-function-static)
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
+#pragma clang diagnostic ignored "-Wunused-function"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunneeded-internal-declaration"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
+/* clang-tidy: -functionStatic -misc-function-static */
+/* NOLINTBEGIN(functionStatic,misc-function-static) */
 
 namespace ca2co {
 
@@ -303,4 +313,10 @@ void spawn([[maybe_unused]] continuation<R...>&& c) {}
 
 }  // namespace ca2co
 
-// NOLINTEND(misc-function-static)
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
+/* NOLINTEND(functionStatic,misc-function-static) */
