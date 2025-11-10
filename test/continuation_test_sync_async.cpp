@@ -95,7 +95,8 @@ ca2co::continuation<int> test_1_sync() {
 ca2co::continuation<int> test_1_sync_with_exception() {
   std::println("Start test_1_sync_with_exception");
   throw std::runtime_error("test_Exception");
-  co_return n_42; // NOLINT(unreachableCode)
+   // NOLINTNEXTLINE(unreachableCode)
+  co_return n_42;
 }
 
 ca2co::continuation<int> test_1_async_with_exception() {
@@ -103,7 +104,8 @@ ca2co::continuation<int> test_1_async_with_exception() {
   const int x = co_await ca2co::callback_async<int>(&api_async);
   CHECK(x == n_41);
   throw std::runtime_error("test_Exception");
-  co_return n_42; // NOLINT(unreachableCode)
+   // NOLINTNEXTLINE(unreachableCode)
+  co_return n_42;
 }
 
 ca2co::continuation<double> test_2(auto&& test1) {  // NOLINT

@@ -69,7 +69,8 @@ class callback_awaiter {
       calling_coroutine.resume();
     });
   }
-  auto await_resume() { return std::move(result_); } // NOLINT(functionStatic)
+  // NOLINTNEXTLINE(functionStatic)
+  auto await_resume() { return std::move(result_); }
 
  private:
   synchronisation sync_or_async_;
@@ -177,10 +178,12 @@ struct basic_promise_type : HandleReturn {
 
 template <typename... Rs>
 struct handle_return {
-  void return_value(this auto& self, std::tuple<Rs...> result) { // NOLINT(functionStatic)
+  // NOLINTNEXTLINE(functionStatic)
+  void return_value(this auto& self, std::tuple<Rs...> result) {
     self.result_ = std::move(result);
   }
-  auto return_result(this auto& self, auto& coroutine) { // NOLINT(functionStatic)
+  // NOLINTNEXTLINE(functionStatic)
+  auto return_result(this auto& self, auto& coroutine) {
     auto result = std::move(self.result_);
     self.destroy_if_not_awaited(coroutine);
     return result;
@@ -199,7 +202,8 @@ struct handle_return<Ret> {
 };
 template <>
 struct handle_return<> {
-  void return_void() {};
+  static void return_void() {};
+  // NOLINTNEXTLINE(functionStatic)
   auto return_result(this auto& self, auto& coroutine) {
     self.destroy_if_not_awaited(coroutine);
   }
@@ -256,8 +260,9 @@ class continuation {
 };
 
 template <typename HandleReturn, typename... Args>
-continuation<Args...>
-basic_promise_type<HandleReturn, Args...>::get_return_object(this auto& self) { // NOLINT(functionStatic)
+continuation<Args...> 
+ // NOLINTNEXTLINE(functionStatic)
+ basic_promise_type<HandleReturn, Args...>::get_return_object(this auto& self) {
   return continuation<Args...>{
       std::coroutine_handle<basic_promise_type>::from_promise(self)};
 }
