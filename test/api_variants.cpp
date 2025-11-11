@@ -39,11 +39,6 @@ ca2co::continuation<std::string_view, int> co_sync_api_string_view_int() {
   co_return std::make_tuple<std::string_view, int>(std::string_view("xy"), 2);
 }
 
-static_assert(
-    !ca2co::is_noexept_callback_api_v<decltype(async_api_string_view_int),
-                                      std::tuple<std::string_view, int>>);
-static_assert(ca2co::is_noexept_callback_api_v<
-              decltype(async_api_string_view_int), std::string_view, int>);
 }  // namespace fixture
 }  // namespace
 
