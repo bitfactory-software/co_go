@@ -39,14 +39,31 @@ ca2co::continuation<std::string_view, int> co_sync_api_string_view_int() {
   co_return std::make_tuple<std::string_view, int>(std::string_view("xy"), 2);
 }
 
-void loop_callback_api(
+static_assert(!ca2co::is_iterator<std::optional<int>>);
+static_assert(ca2co::is_iterator<ca2co::iterator<int>>);
+
+void loop_callback_api_sync(
     std::function<void(ca2co::iterator<int>)> const& callback) noexcept {
   for (auto i : std::ranges::iota_view(0, 4)) callback(std::optional{i});
   callback({});
 }
 
-ca2co::continuation<ca2co::iterator<int>> co_loop_api() {
-  return ca2co::callback_sync<ca2co::iterator<int>>(loop_callback_api);
+ca2co::continuation<ca2co::iterator<int>> co_loop_api_sync() {
+  return ca2co::callback_sync<ca2co::iterator<int>>(loop_callback_api_sync);
+}
+
+void loop_callback_api_async(
+    std::function<void(ca2co::iterator<int>)> const& callback) noexcept {
+  a_thread = std::thread{[=] {
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(short_break);
+    for (auto i : std::ranges::iota_view(0, 4)) callback(std::optional{i});
+    callback({});
+  }};
+}
+
+ca2co::continuation<ca2co::iterator<int>> co_loop_api_async() {
+  return ca2co::callback_async<ca2co::iterator<int>>(loop_callback_api_async);
 }
 
 }  // namespace fixture
@@ -88,25 +105,32 @@ TEST_CASE("async_api_string_view_int indirect") {
   CHECK(called);
 }
 
+namespace {
+constexpr int is_six = 6;
+}
+
 TEST_CASE("co_loop_api sync") {
   static auto sum = 0;
-  static_assert(!ca2co::is_iterator<std::optional<int>>);
-  static_assert(ca2co::is_iterator<ca2co::iterator<int>>);
-  using callback_awaiter_t = decltype(fixture::co_loop_api());
   [&] -> ca2co::continuation<> {  // NOLINT
-    for (auto __i = co_await fixture::co_loop_api(); __i; co_await __i)
+    for (auto __i = co_await fixture::co_loop_api_sync(); __i; co_await __i)
       if (auto i = *__i; true) sum += i;
   }();
-  CHECK(sum == 1 + 2 + 3);
+  CHECK(sum == is_six);
 }
 
 TEST_CASE("CA2CO_for_co_await sync") {
   static auto sum = 0;
-  static_assert(!ca2co::is_iterator<std::optional<int>>);
-  static_assert(ca2co::is_iterator<ca2co::iterator<int>>);
-  using callback_awaiter_t = decltype(fixture::co_loop_api());
   [&] -> ca2co::continuation<> {  // NOLINT
-    CA2CO_for_co_await(auto i, fixture::co_loop_api()) sum += i;
+    CA2CO_for_co_await(auto i, fixture::co_loop_api_sync()) sum += i;
   }();
-  CHECK(sum == 1 + 2 + 3);
+  CHECK(sum == is_six);
+}
+
+TEST_CASE("CA2CO_for_co_await async") {
+  static auto sum = 0;
+  [&] -> ca2co::continuation<> {  // NOLINT
+    CA2CO_for_co_await(auto i, fixture::co_loop_api_async()) sum += i;
+  }();
+  fixture::a_thread.join();
+  CHECK(sum == is_six);
 }
