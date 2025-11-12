@@ -100,7 +100,7 @@ TEST_CASE("co_loop_api sync") {
   CHECK(sum == 1 + 2 + 3);
 }
 
-TEST_CASE("co_loop_api w macro sync") {
+TEST_CASE("CA2CO_for_co_await sync") {
   static auto sum = 0;
   static_assert(!ca2co::is_iterator<std::optional<int>>);
   static_assert(ca2co::is_iterator<ca2co::iterator<int>>);
