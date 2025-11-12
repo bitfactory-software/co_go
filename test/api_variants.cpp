@@ -40,13 +40,13 @@ ca2co::continuation<std::string_view, int> co_sync_api_string_view_int() {
 }
 
 void loop_callback_api(
-    std::function<void(std::optional<int>)> const& callback) noexcept{
-  for (auto i : std::ranges::iota_view(0, 3)) callback(i);
+    std::function<void(ca2co::iterator<int>)> const& callback) noexcept {
+  for (auto i : std::ranges::iota_view(0, 4)) callback(std::optional{i});
   callback({});
 }
 
-ca2co::continuation<std::optional<int>> co_loop_api() {
-  return ca2co::callback_sync<std::optional<int>>(loop_callback_api);
+ca2co::continuation<ca2co::iterator<int>> co_loop_api() {
+  return ca2co::callback_sync<ca2co::iterator<int>>(loop_callback_api);
 }
 
 }  // namespace fixture
@@ -88,12 +88,19 @@ TEST_CASE("async_api_string_view_int indirect") {
   CHECK(called);
 }
 
-//TEST_CASE("co_loop_api sync") {
-//  static auto sum = 0;
-//  [&] -> ca2co::continuation<> {  // NOLINT
-//    for (auto i = co_await fixture::co_loop_api(); i; i = co_await (i.next())){
-//        sum += i.value();
-//    }
-//  }();
-//  CHECK( sum == 1 + 2 + 3);
-//}
+TEST_CASE("co_loop_api sync") {
+  static auto sum = 0;
+  static_assert(!ca2co::is_iterator<std::optional<int>>);
+  static_assert(ca2co::is_iterator<ca2co::iterator<int>>);
+  using callback_awaiter_t = decltype(fixture::co_loop_api());
+  [&] -> ca2co::continuation<> {  // NOLINT
+    auto i = co_await fixture::co_loop_api();
+    for (; i;) {
+      sum += *i;
+      auto awaiter = i.next();
+      i = co_await awaiter;
+      std::println("after co_await i.next()");
+    }
+  }();
+  CHECK(sum == 1 + 2 + 3);
+}

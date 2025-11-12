@@ -24,6 +24,61 @@ static int continuation_promise_count = 0;
 
 enum class synchronisation { sync, async };
 
+template <class... Ts>
+struct overloads : Ts... {
+  using Ts::operator()...;
+};
+
+template <typename V>
+class iterator {
+ public:
+  using value_t = typename V;
+  using optional_t = std::optional<value_t>;
+  using get_value_t = std::function<optional_t()>;
+
+  iterator(get_value_t get_value) : holder_(std::move(get_value)) {}
+  iterator(optional_t optional) : holder_(std::move(optional)) {}
+  iterator() : iterator(optional_t{}) {}
+
+  struct next_awaiter : std::suspend_always {
+    next_awaiter(get_value_t get_value) : get_value_(std::move(get_value)) {}
+    get_value_t get_value_;
+    iterator await_resume() const {
+      return iterator{get_value_};
+    }
+  };
+
+  auto operator*() const {
+    return std::visit(
+        overloads([](optional_t const& o) { return *o; },
+                  [](get_value_t const& get_value) { return *get_value(); }),
+        holder_);
+  }
+  explicit operator bool() const {
+    return std::visit(
+        overloads([](optional_t const& o) { return o.has_value(); },
+                  [](get_value_t const& get_value) {
+                    return get_value().has_value();
+                  }),
+        holder_);
+  }
+
+  auto next() const { return next_awaiter{std::get<get_value_t>(holder_)}; }
+
+ private:
+  std::variant<get_value_t, optional_t> holder_;
+};
+
+template <typename... Args>
+struct is_iterator_impl : std::false_type {};
+template <typename T>
+struct is_iterator_impl<iterator<T>> : std::true_type {};
+template <typename... Args>
+constexpr auto is_iterator = is_iterator_impl<Args...>::value;
+
+template <typename... Args>
+using iterator_type = std::tuple_element_t<0, std::tuple<Args...>>;
+
 template <typename... Args>
 struct result_t_impl {
   using type = std::tuple<Args...>;
@@ -66,6 +121,7 @@ class callback_awaiter {
  public:
   using callback_t = std::function<void(CallbackArgs...)>;
   using api_t = std::function<void(callback_t const&)>;
+  static constexpr bool is_iterator = is_iterator<CallbackArgs...>;
   template <typename Api>
   callback_awaiter(synchronisation sync_or_async, Api api)
     requires is_noexept_callback_api<Api, CallbackArgs...>
@@ -73,16 +129,27 @@ class callback_awaiter {
   static bool await_ready() noexcept { return false; }
   void await_suspend(auto calling_coroutine) {
     calling_coroutine.promise().sync_ = sync_or_async_;
-    bool called = false;
-    api_([this, calling_coroutine, called](CallbackArgs&&... args) mutable {
-      if (called) return;
-      called = true;
+    api_([this, calling_coroutine](CallbackArgs&&... args) mutable {
       result_ =
           result_t<CallbackArgs...>::make(std::forward<CallbackArgs>(args)...);
       calling_coroutine.resume();
     });
   }
-  auto await_resume() { return std::move(result_); }
+  auto await_resume() {
+    if constexpr (is_iterator) {
+      using iterator_t = iterator_type<CallbackArgs...>;
+      using optional_t = typename iterator_t::optional_t;
+      using get_value_t = typename iterator_t::get_value_t;
+      return iterator_t{get_value_t{[this] -> optional_t {
+        if (this->result_)
+          return *this->result_;
+        else
+          return {};
+      }}};
+    } else {
+      return std::move(result_);
+    }
+  }
 
  private:
   synchronisation sync_or_async_;
